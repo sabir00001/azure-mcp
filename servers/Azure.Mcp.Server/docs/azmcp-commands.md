@@ -683,6 +683,29 @@ azmcp appconfig kv set --subscription <subscription> \
                        [--tags <tags>]
 ```
 
+### Azure App Diagnostics Operations
+
+```bash
+# Check application operational state, availability state, and VNet integration status
+# ❌ Destructive | ✅ Idempotent | ❌ OpenWorld | ✅ ReadOnly | ❌ Secret | ❌ LocalRequired
+azmcp appdiagnostics health check --app <app-name> \
+                                 --resource-group <resource-group> \
+                                 --subscription <subscription>
+
+# Triage recent application deployments, slot/revision status, and release failures
+# ❌ Destructive | ✅ Idempotent | ❌ OpenWorld | ✅ ReadOnly | ❌ Secret | ❌ LocalRequired
+azmcp appdiagnostics deployment triage --app <app-name> \
+                                       --resource-group <resource-group> \
+                                       --subscription <subscription>
+
+# Analyze application telemetry error logs and exception traces for L2 handoffs
+# ❌ Destructive | ✅ Idempotent | ❌ OpenWorld | ✅ ReadOnly | ❌ Secret | ❌ LocalRequired
+azmcp appdiagnostics logs analyze --app <app-name> \
+                                  --resource-group <resource-group> \
+                                  --subscription <subscription> \
+                                  [--time-window <time-window>]
+```
+
 ### Azure App Lens Operations
 
 ```bash
@@ -4014,6 +4037,36 @@ azmcp datadog monitoredresources list --subscription <subscription> \
                                       --datadog-resource <datadog-resource>
 ```
 
+### Azure Network Diagnostics Operations
+
+```bash
+# Get operational topology summary for VNets, subnets, route tables, NSGs, and private endpoints
+# ❌ Destructive | ✅ Idempotent | ❌ OpenWorld | ✅ ReadOnly | ❌ Secret | ❌ LocalRequired
+azmcp networkdiagnostics topology summary --subscription <subscription> \
+                                          [--resource-group <resource-group>]
+
+# Evaluate effective security rules for an NSG
+# ❌ Destructive | ✅ Idempotent | ❌ OpenWorld | ✅ ReadOnly | ❌ Secret | ❌ LocalRequired
+azmcp networkdiagnostics nsg validate --nsg <nsg-name> \
+                                      --resource-group <resource-group> \
+                                      --direction <inbound-or-outbound> \
+                                      --protocol <tcp-udp-or-asterisk> \
+                                      --source-address <source-ip-or-cidr> \
+                                      --destination-port <port-number> \
+                                      --subscription <subscription>
+
+# Validate Private DNS zones and records
+# ❌ Destructive | ✅ Idempotent | ❌ OpenWorld | ✅ ReadOnly | ❌ Secret | ❌ LocalRequired
+azmcp networkdiagnostics privatedns validate --subscription <subscription> \
+                                             [--resource-group <resource-group>]
+
+# Check virtual network peering state and sync status
+# ❌ Destructive | ✅ Idempotent | ❌ OpenWorld | ✅ ReadOnly | ❌ Secret | ❌ LocalRequired
+azmcp networkdiagnostics peering check --vnet <vnet-name> \
+                                       --resource-group <resource-group> \
+                                       --subscription <subscription>
+```
+
 ### Azure Quick Review CLI Operations
 
 ```bash
@@ -5408,6 +5461,38 @@ azmcp virtualdesktop hostpool host list --subscription <subscription> \
 # ❌ Destructive | ✅ Idempotent | ❌ OpenWorld | ✅ ReadOnly | ❌ Secret | ❌ LocalRequired
 azmcp virtualdesktop hostpool host list --subscription <subscription> \
                                                 --hostpool-resource-id /subscriptions/<sub>/resourceGroups/<rg>/providers/Microsoft.DesktopVirtualization/hostPools/<pool>
+```
+
+### Azure VM Diagnostics Operations
+
+```bash
+# Get VM power state, provisioning status, agent health, and extension status
+# ❌ Destructive | ✅ Idempotent | ❌ OpenWorld | ✅ ReadOnly | ❌ Secret | ❌ LocalRequired
+azmcp vmdiagnostics health get --vm <vm-name> \
+                               --resource-group <resource-group> \
+                               --subscription <subscription>
+
+# Review VM CPU, memory, disk, and network performance metrics
+# ❌ Destructive | ✅ Idempotent | ❌ OpenWorld | ✅ ReadOnly | ❌ Secret | ❌ LocalRequired
+azmcp vmdiagnostics metrics review --vm <vm-name> \
+                                   --resource-group <resource-group> \
+                                   --subscription <subscription> \
+                                   [--timespan <timespan>]
+
+# List top processes by CPU and memory consumption on a VM
+# ❌ Destructive | ✅ Idempotent | ❌ OpenWorld | ✅ ReadOnly | ❌ Secret | ❌ LocalRequired
+azmcp vmdiagnostics process list --vm <vm-name> \
+                                 --resource-group <resource-group> \
+                                 --subscription <subscription> \
+                                 [--top <count>]
+
+# Query Windows Event Logs or Linux syslog for critical errors and warnings on a VM
+# ❌ Destructive | ✅ Idempotent | ❌ OpenWorld | ✅ ReadOnly | ❌ Secret | ❌ LocalRequired
+azmcp vmdiagnostics eventlogs query --vm <vm-name> \
+                                    --resource-group <resource-group> \
+                                    --subscription <subscription> \
+                                    [--log-type <system-or-application>] \
+                                    [--max-entries <count>]
 ```
 
 ### Azure Well-Architected Framework Operations

@@ -199,6 +199,14 @@ The `Interaction` column describes whether a prompt can invoke its tool immediat
 | appconfig_kv_lock_set | Unlock the key <key_name> in App Configuration store <app_config_store_name> | none |
 | appconfig_kv_set | Set the key <key_name> in App Configuration store <app_config_store_name> to \<value> | none |
 
+## Azure App Diagnostics
+
+| Tool Name | Test Prompt | Interaction |
+|:----------|:------------|:------------|
+| appdiagnostics_health_check | Check application state, availability state, and VNet integration for app <app-name> in resource group <resource-group> | none |
+| appdiagnostics_deployment_triage | Triage recent deployments and release failures for app <app-name> in resource group <resource-group> | none |
+| appdiagnostics_logs_analyze | Analyze application error logs and exception traces for app <app-name> in resource group <resource-group> | none |
+
 ## Azure App Lens
 
 | Tool Name | Test Prompt | Interaction |
@@ -1037,6 +1045,16 @@ The `Interaction` column describes whether a prompt can invoke its tool immediat
 | datadog_monitoredresources_list | List all monitored resources in the Datadog resource <resource_name> | none |
 | datadog_monitoredresources_list | Show me the monitored resources in the Datadog resource <resource_name> | none |
 
+## Azure Network Diagnostics
+
+| Tool Name | Test Prompt | Interaction |
+|:----------|:------------|:------------|
+| networkdiagnostics_topology_summary | Show me the network topology summary for subscription <subscription> | none |
+| networkdiagnostics_topology_summary | Summarize all virtual networks and subnets in resource group <resource-group> | none |
+| networkdiagnostics_nsg_validate | Validate if inbound TCP traffic on port 443 from 10.0.0.4 is allowed by NSG <nsg-name> in resource group <resource-group> | none |
+| networkdiagnostics_privatedns_validate | Validate Private DNS zones and records in subscription <subscription> | none |
+| networkdiagnostics_peering_check | Check VNet peering state and sync status for VNet <vnet-name> in resource group <resource-group> | none |
+
 ## Azure Quick Review CLI
 
 | Tool Name | Test Prompt | Interaction |
@@ -1488,6 +1506,15 @@ The `Interaction` column describes whether a prompt can invoke its tool immediat
 |:----------|:------------|:------------|
 | virtualdesktop_hostpool_list | List all host pools in my subscription | none |
 | virtualdesktop_hostpool_host_list | List all session hosts in host pool <hostpool_name> | none |
+
+## Azure VM Diagnostics
+
+| Tool Name | Test Prompt | Interaction |
+|:----------|:------------|:------------|
+| vmdiagnostics_health_get | Check instance view and agent health for VM <vm-name> in resource group <resource-group> | none |
+| vmdiagnostics_metrics_review | Review CPU and memory performance metrics for VM <vm-name> in resource group <resource-group> | none |
+| vmdiagnostics_process_list | List top processes consuming CPU and memory on VM <vm-name> in resource group <resource-group> | none |
+| vmdiagnostics_eventlogs_query | Query System event logs for critical errors on VM <vm-name> in resource group <resource-group> | none |
 | virtualdesktop_hostpool_host_user-list | List all user sessions on session host <sessionhost_name> in host pool <hostpool_name> | none |
 
 ## Azure Well-Architected Framework
