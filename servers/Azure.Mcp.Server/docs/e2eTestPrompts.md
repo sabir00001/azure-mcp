@@ -203,9 +203,6 @@ The `Interaction` column describes whether a prompt can invoke its tool immediat
 
 | Tool Name | Test Prompt | Interaction |
 |:----------|:------------|:------------|
-| appdiagnostics_health_check | Check application state, availability state, and VNet integration for app <app-name> in resource group <resource-group> | none |
-| appdiagnostics_deployment_triage | Triage recent deployments and release failures for app <app-name> in resource group <resource-group> | none |
-| appdiagnostics_logs_analyze | Analyze application error logs and exception traces for app <app-name> in resource group <resource-group> | none |
 
 ## Azure App Lens
 
@@ -1512,10 +1509,17 @@ The `Interaction` column describes whether a prompt can invoke its tool immediat
 | Tool Name | Test Prompt | Interaction |
 |:----------|:------------|:------------|
 | vmdiagnostics_health_get | Check instance view and agent health for VM <vm-name> in resource group <resource-group> | none |
-| vmdiagnostics_metrics_review | Review CPU and memory performance metrics for VM <vm-name> in resource group <resource-group> | none |
 | vmdiagnostics_process_list | List top processes consuming CPU and memory on VM <vm-name> in resource group <resource-group> | none |
 | vmdiagnostics_eventlogs_query | Query System event logs for critical errors on VM <vm-name> in resource group <resource-group> | none |
+| vmdiagnostics_service_status | Check the status and start type of the allowlisted W32Time service on VM <vm-name> in resource group <resource-group> | none |
 | virtualdesktop_hostpool_host_user-list | List all user sessions on session host <sessionhost_name> in host pool <hostpool_name> | none |
+
+## Azure VM Remediation
+
+| Tool Name | Test Prompt | Interaction |
+|:----------|:------------|:------------|
+| vmremediation_service_restart | Start the allowlisted W32Time service on VM <vm-name> for incident <incident-id> | none |
+| vmremediation_vm_restart | Restart VM <vm-name> for incident <incident-id> | approval required |
 
 ## Azure Well-Architected Framework
 

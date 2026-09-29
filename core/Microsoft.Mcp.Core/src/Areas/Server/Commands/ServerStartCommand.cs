@@ -3,6 +3,8 @@
 
 using System.Diagnostics;
 using System.Net;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using Azure.Monitor.OpenTelemetry.Exporter;
 using Microsoft.AspNetCore.Authentication;
@@ -311,7 +313,10 @@ public sealed class ServerStartCommand : BaseCommand<ServerStartOptions, string>
 
         if (serverOptions.Transport == TransportTypes.Http)
         {
-            if (serverOptions.DangerouslyDisableHttpIncomingAuth)
+            // Both the fully-unauthenticated escape hatch and API-key mode use the non-Entra host.
+            // That host applies the MCP_API_KEY gate when the key is present (mandatory under
+            // --enable-api-key-auth, optional under --dangerously-disable-http-incoming-auth).
+            if (serverOptions.DangerouslyDisableHttpIncomingAuth || serverOptions.EnableApiKeyAuth)
             {
                 return CreateIncomingAuthDisabledHttpHost(serverOptions);
             }
@@ -608,6 +613,11 @@ public sealed class ServerStartCommand : BaseCommand<ServerStartOptions, string>
         // design strategy we've fully vetted or endorsed.
         services.AddHttpServiceCacheService(serverOptions.DisableCaching);
 
+        // Register health checks so the "/health" liveness endpoint is available even when
+        // incoming auth is disabled. Without this, container orchestrators (ECS, ACA, k8s)
+        // probing "/health" get a 404 and mark the task unhealthy.
+        services.AddHealthChecks();
+
         WebApplication app = builder.Build();
 
         UseHttpsRedirectionIfEnabled(app);
@@ -615,8 +625,72 @@ public sealed class ServerStartCommand : BaseCommand<ServerStartOptions, string>
         // Configure middleware pipeline
         app.UseCors("McpCorsPolicy");
         app.UseRouting();
+
+        // Optional API-key gate for agent -> MCP authentication.
+        //
+        // This "insecure" host disables the built-in Entra JWT bearer auth
+        // (--dangerously-disable-http-incoming-auth), which is appropriate when Azure auth is
+        // handled inside the server by its own service principal (the outgoing credential), and the
+        // only thing we need to authenticate is the calling agent itself.
+        //
+        // When the MCP_API_KEY environment variable is set, every request must present a matching
+        // key or receive HTTP 401. The "/health" liveness endpoint stays anonymous so container
+        // orchestrator probes (ECS, ACA, k8s) still succeed. The header name defaults to
+        // "X-API-Key" and can be overridden with MCP_API_KEY_HEADER to match the calling agent
+        // platform (e.g. "Authorization", "x-functions-key"). If MCP_API_KEY is unset, this host
+        // remains fully unauthenticated and must not be exposed outside a trusted network boundary.
+        string? expectedApiKey = Environment.GetEnvironmentVariable("MCP_API_KEY");
+
+        // In explicit API-key mode the shared secret is mandatory. Refuse to start unauthenticated,
+        // otherwise --enable-api-key-auth would bind (potentially externally) with no protection.
+        if (serverOptions.EnableApiKeyAuth && string.IsNullOrEmpty(expectedApiKey))
+        {
+            throw new InvalidOperationException(
+                "--enable-api-key-auth requires the MCP_API_KEY environment variable to be set.");
+        }
+
+        if (!string.IsNullOrEmpty(expectedApiKey))
+        {
+            string apiKeyHeader = Environment.GetEnvironmentVariable("MCP_API_KEY_HEADER") is { Length: > 0 } configuredHeader
+                ? configuredHeader
+                : "X-API-Key";
+            byte[] expectedKeyBytes = Encoding.UTF8.GetBytes(expectedApiKey);
+
+            app.Use(async (HttpContext context, Func<Task> next) =>
+            {
+                // Keep the liveness endpoint anonymous so orchestrator health probes still succeed.
+                if (context.Request.Path.StartsWithSegments("/health"))
+                {
+                    await next();
+                    return;
+                }
+
+                StringValues providedValues = context.Request.Headers[apiKeyHeader];
+                string? presentedKey = providedValues.Count > 0 ? providedValues[^1] : null;
+
+                // Constant-time comparison to avoid leaking the key length/content via timing.
+                if (presentedKey is null
+                    || !CryptographicOperations.FixedTimeEquals(
+                        Encoding.UTF8.GetBytes(presentedKey), expectedKeyBytes))
+                {
+                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    context.Response.ContentType = "application/json";
+                    await context.Response.WriteAsync(
+                        "{\"error\":\"unauthorized\",\"error_description\":\"Missing or invalid API key.\"}");
+                    return;
+                }
+
+                await next();
+            });
+        }
+
         app.Use(ValidateMcpRoutingHeadersMiddleware);
         app.MapMcp();
+
+        // Map non-MCP endpoints.
+        // Health checks are anonymous (no authentication required).
+        app.MapHealthChecks("/health")
+            .AllowAnonymous();
 
         return app;
     }
@@ -816,10 +890,12 @@ public sealed class ServerStartCommand : BaseCommand<ServerStartOptions, string>
     /// </summary>
     private static void InitializeListingUrls(WebApplicationBuilder builder, ServerStartOptions options)
     {
-        if (!options.DangerouslyDisableHttpIncomingAuth)
+        if (!options.DangerouslyDisableHttpIncomingAuth || options.EnableApiKeyAuth)
         {
-            // When running in secured HTTP mode, allow the standard IConfiguration binding to handle
-            // the ASPNETCORE_URLS value without any additional validation.
+            // The wildcard-binding guard exists only to stop the fully-unauthenticated host from
+            // being exposed beyond loopback by accident. Authenticated hosts (Entra JWT, or API-key
+            // mode which requires MCP_API_KEY) may bind externally via the standard IConfiguration
+            // binding without the ALLOW_INSECURE_EXTERNAL_BINDING opt-in.
             return;
         }
 

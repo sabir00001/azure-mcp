@@ -38,4 +38,12 @@ public interface IVmDiagnosticsService
         int maxEntries = 50,
         string? tenant = null,
         CancellationToken cancellationToken = default);
+
+    Task<VmServiceStatusResult> GetServiceStatusAsync(
+        string vmName,
+        string resourceGroup,
+        string service,
+        string subscription,
+        string? tenant = null,
+        CancellationToken cancellationToken = default);
 }

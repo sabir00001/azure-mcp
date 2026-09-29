@@ -242,6 +242,7 @@ internal class Program
             new Azure.Mcp.Tools.StorageSync.StorageSyncSetup(),
             new Azure.Mcp.Tools.VirtualDesktop.VirtualDesktopSetup(),
             new Azure.Mcp.Tools.VmDiagnostics.VmDiagnosticsSetup(),
+            new Azure.Mcp.Tools.VmRemediation.VmRemediationSetup(),
             new Azure.Mcp.Tools.WellArchitectedFramework.WellArchitectedFrameworkSetup(),
             new Azure.Mcp.Tools.Workbooks.WorkbooksSetup(),
 #if !BUILD_NATIVE

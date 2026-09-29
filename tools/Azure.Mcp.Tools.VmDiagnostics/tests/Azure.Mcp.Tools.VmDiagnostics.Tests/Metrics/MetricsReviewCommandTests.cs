@@ -19,11 +19,11 @@ public class MetricsReviewCommandTests : SubscriptionCommandUnitTestsBase<Metric
         var subId = "12345678-1234-1234-1234-123456789012";
 
         Service.ReviewVmMetricsAsync("vm1", "rg1", subId, "PT1H", null, Arg.Any<CancellationToken>())
-            .ThrowsAsync(new NotImplementedException("VM metrics collection is not implemented yet."));
+            .ThrowsAsync(new NotImplementedException("VM metrics collection is not implemented. Use the monitor namespace: monitor_metrics_query, monitor_metrics_batchquery, or monitor_metrics_definitions."));
 
         var response = await ExecuteCommandAsync("--vm", "vm1", "--resource-group", "rg1", "--subscription", subId);
 
         Assert.Equal(HttpStatusCode.InternalServerError, response.Status);
-        Assert.StartsWith("VM metrics collection is not implemented yet.", response.Message);
+        Assert.StartsWith("VM metrics collection is not implemented.", response.Message);
     }
 }

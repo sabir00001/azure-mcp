@@ -5493,6 +5493,32 @@ azmcp vmdiagnostics eventlogs query --vm <vm-name> \
                                     --subscription <subscription> \
                                     [--log-type <system-or-application>] \
                                     [--max-entries <count>]
+
+# Read an allowlisted Windows service or Linux systemd unit before remediation.
+# ✅ Non-destructive | ✅ Idempotent | ❌ OpenWorld | ✅ ReadOnly | ❌ Secret | ❌ LocalRequired
+azmcp vmdiagnostics service status --vm <vm-name> \
+                                  --resource-group <resource-group> \
+                                  --subscription <subscription> \
+                                  --service <allowlisted-service>
+```
+
+### Azure VM Remediation Operations
+
+```bash
+# Start or restart a source-allowlisted Windows or Linux service. The incident ID is required.
+# ✅ Destructive | ❌ Idempotent | ❌ OpenWorld | ❌ ReadOnly | ❌ Secret | ❌ LocalRequired
+azmcp vmremediation service restart --vm <vm-name> \
+                                    --resource-group <resource-group> \
+                                    --subscription <subscription> \
+                                    --service <allowlisted-service> \
+                                    --incident-id <incident-id>
+
+# Request or execute an approval-gated VM restart. The incident ID is required.
+# ✅ Destructive | ❌ Idempotent | ❌ OpenWorld | ❌ ReadOnly | ❌ Secret | ❌ LocalRequired
+azmcp vmremediation vm restart --vm <vm-name> \
+                               --resource-group <resource-group> \
+                               --subscription <subscription> \
+                               --incident-id <incident-id>
 ```
 
 ### Azure Well-Architected Framework Operations

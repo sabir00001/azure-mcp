@@ -13,11 +13,11 @@ public class NetworkDiagnosticsServiceTests
     private readonly NetworkDiagnosticsService _service = new(Substitute.For<IAzureService>());
 
     [Fact]
-    public async Task ValidateNsgRulesAsync_ThrowsNotImplementedException()
+    public async Task ValidateNsgRulesAsync_ValidatesDirection()
     {
-        await Assert.ThrowsAsync<NotImplementedException>(() =>
+        await Assert.ThrowsAsync<ArgumentException>(() =>
             _service.ValidateNsgRulesAsync(
-                "nsg1", "rg1", "sub1", "Inbound", "Tcp", "10.0.0.4", 443,
+                "nsg1", "rg1", "sub1", "Sideways", "Tcp", "10.0.0.4", 443,
                 cancellationToken: TestContext.Current.CancellationToken));
     }
 

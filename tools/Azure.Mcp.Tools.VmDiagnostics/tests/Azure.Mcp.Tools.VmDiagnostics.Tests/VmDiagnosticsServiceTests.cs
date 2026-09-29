@@ -20,16 +20,16 @@ public class VmDiagnosticsServiceTests
     }
 
     [Fact]
-    public async Task ListTopProcessesAsync_ThrowsNotImplementedException()
+    public async Task ListTopProcessesAsync_ValidatesRequiredParameters()
     {
-        await Assert.ThrowsAsync<NotImplementedException>(() =>
-            _service.ListTopProcessesAsync("vm1", "rg1", "sub1", 10, cancellationToken: CancellationToken.None));
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            _service.ListTopProcessesAsync(string.Empty, "rg1", "sub1", 10, cancellationToken: CancellationToken.None));
     }
 
     [Fact]
-    public async Task QueryEventLogsAsync_ThrowsNotImplementedException()
+    public async Task QueryEventLogsAsync_ValidatesRequiredParameters()
     {
-        await Assert.ThrowsAsync<NotImplementedException>(() =>
-            _service.QueryEventLogsAsync("vm1", "rg1", "sub1", "System", 20, cancellationToken: CancellationToken.None));
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            _service.QueryEventLogsAsync(string.Empty, "rg1", "sub1", "System", 20, cancellationToken: CancellationToken.None));
     }
 }

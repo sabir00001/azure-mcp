@@ -39,3 +39,10 @@ eng/tools/CopilotCliTester/src/results/
 docs/vm-docs/
 
 vally-results/
+
+# Claude Code assistant scratch / working files (not part of the codebase)
+Claude outputs/
+memory/
+mcp-initialize.json
+Dockerfile.old
+local-publish/

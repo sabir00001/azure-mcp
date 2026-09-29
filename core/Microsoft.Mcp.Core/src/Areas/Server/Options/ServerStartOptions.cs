@@ -61,6 +61,15 @@ public sealed class ServerStartOptions
     public bool DangerouslyDisableHttpIncomingAuth { get; set; } = false;
 
     /// <summary>
+    /// Gets or sets whether incoming HTTP requests are authenticated with the MCP_API_KEY shared
+    /// secret instead of Entra JWT bearer tokens. Requires the MCP_API_KEY environment variable to
+    /// be set; the server refuses to start otherwise. Unlike DangerouslyDisableHttpIncomingAuth,
+    /// this is an authenticated mode and is appropriate for production behind a trusted proxy.
+    /// </summary>
+    [Option(Description = "Authenticate incoming HTTP requests with the MCP_API_KEY shared secret (sent in the X-API-Key header, or the header named by MCP_API_KEY_HEADER) instead of Entra JWT bearer tokens. Requires the MCP_API_KEY environment variable to be set.", DefaultValue = false)]
+    public bool EnableApiKeyAuth { get; set; } = false;
+
+    /// <summary>
     /// Gets or sets whether elicitation (user confirmation for high-risk operations like accessing secrets) is disabled (dangerous mode).
     /// When true, elicitation will always be treated as accepted without user confirmation.
     /// </summary>
