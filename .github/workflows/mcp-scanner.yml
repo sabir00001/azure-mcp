@@ -97,6 +97,10 @@ jobs:
               ".summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:20px 0 28px;}"
               ".metric,.empty,.error{padding:16px;background:#fff;border:1px solid #d6dee2;border-radius:6px;}"
               ".metric strong{display:block;font-size:24px}.metric span{color:#53636e;font-size:13px;}"
+              ".notice{margin:18px 0;padding:12px 14px;background:#fff8df;border:1px solid #ead796;border-radius:6px;color:#604d17;}"
+              ".signal-list{display:grid;gap:10px;margin:12px 0 28px}.signal{padding:14px;background:#fff;border:1px solid #d6dee2;border-radius:6px;}"
+              ".signal h3{display:flex;align-items:center;gap:8px;margin:0 0 8px;font-size:15px;}"
+              ".review{color:#755100;background:#fff1d2}.affected{margin-top:8px;color:#53636e;font-size:13px;overflow-wrap:anywhere;}"
               ".tool-list{display:grid;gap:12px}.tool{background:#fff;border:1px solid #d6dee2;border-radius:6px;overflow:hidden;}"
               ".tool summary{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:14px 16px;cursor:pointer;}"
               ".tool-name,.analyzer-name{font-weight:650;overflow-wrap:anywhere;}"
@@ -128,7 +132,7 @@ jobs:
                   results = []
 
               safe_count = sum(item.get("is_safe") is True for item in results if isinstance(item, dict))
-              flagged_count = sum(item.get("is_safe") is False for item in results if isinstance(item, dict))
+              review_count = sum(item.get("is_safe") is False for item in results if isinstance(item, dict))
               total_findings = sum(
                   analyzer.get("total_findings", 0) or 0
                   for item in results if isinstance(item, dict)
@@ -136,6 +140,7 @@ jobs:
                   if isinstance(analyzer, dict)
               )
 
+              signal_groups = {}
               cards = []
               for item in results:
                   if not isinstance(item, dict):
@@ -143,8 +148,8 @@ jobs:
                   tool_name = item.get("tool_name") or item.get("name") or "Unknown tool"
                   tool_status = item.get("status") or "unknown"
                   safety = item.get("is_safe")
-                  safety_label = "SAFE" if safety is True else "FLAGGED" if safety is False else "UNASSESSED"
-                  safety_class = "safe" if safety is True else "unsafe" if safety is False else "unknown"
+                  safety_label = "SCANNER SAFE" if safety is True else "REVIEW SIGNAL" if safety is False else "UNASSESSED"
+                  safety_class = "safe" if safety is True else "review" if safety is False else "unknown"
                   analyzers = item.get("findings", {}) or {}
                   analyzer_cards = []
                   for analyzer_name, details in analyzers.items():
@@ -155,6 +160,25 @@ jobs:
                       threat_html = "".join(f'<span class="threat">{escape(str(threat))}</span>' for threat in threats)
                       summary = details.get("threat_summary") or "No summary provided."
                       count = details.get("total_findings", 0)
+                      signal_key = (
+                          str(analyzer_name),
+                          str(severity),
+                          str(summary),
+                          tuple(sorted(str(threat) for threat in threats)),
+                      )
+                      signal = signal_groups.setdefault(signal_key, {
+                          "analyzer": str(analyzer_name),
+                          "severity": str(severity),
+                          "summary": str(summary),
+                          "threats": sorted(str(threat) for threat in threats),
+                          "tools": set(),
+                          "findings": 0,
+                      })
+                      signal["tools"].add(str(tool_name))
+                      try:
+                          signal["findings"] += int(count or 0)
+                      except (TypeError, ValueError):
+                          pass
                       analyzer_cards.append(
                           '<section class="analyzer"><div class="analyzer-head">'
                           f'<span class="analyzer-name">{escape(str(analyzer_name).replace("_", " "))}</span>'
@@ -165,13 +189,33 @@ jobs:
                   if not analyzer_cards:
                       analyzer_cards.append('<p class="muted">No analyzer details were returned for this tool.</p>')
                   cards.append(
-                      '<details class="tool" open><summary>'
+                      '<details class="tool"><summary>'
                       f'<span class="tool-name">{escape(str(tool_name))}</span>'
                       f'{badge(safety_label, safety_class)}{badge(tool_status, severity_class(tool_status))}'
                       '</summary><div class="tool-body"><div class="analyzers">'
                       + "".join(analyzer_cards)
                       + '</div></div></details>'
                   )
+
+                  signal_cards = []
+                  for signal in sorted(signal_groups.values(), key=lambda item: (-len(item["tools"]), item["analyzer"], item["summary"])):
+                      threats = "".join(f'<span class="threat">{escape(threat)}</span>' for threat in signal["threats"])
+                      affected_tools = sorted(signal["tools"])
+                      tool_names = ", ".join(escape(name) for name in affected_tools[:12])
+                      if len(affected_tools) > 12:
+                          tool_names += f' and {len(affected_tools) - 12} more'
+                      signal_cards.append(
+                          '<article class="signal"><h3>'
+                          f'{escape(signal["analyzer"].replace("_", " "))}'
+                          f'{badge(signal["severity"], severity_class(signal["severity"]))}'
+                          '</h3>'
+                          f'<p>{escape(signal["summary"])}</p>'
+                          f'<p class="muted">{len(affected_tools)} tools affected; {signal["findings"]} analyzer findings</p>'
+                          f'<div class="threats">{threats}</div>'
+                          f'<div class="affected"><strong>Affected tools:</strong> {tool_names}</div>'
+                          '</article>'
+                      )
+                  signals_html = "".join(signal_cards) or '<section class="empty">No analyzer signals were reported.</section>'
 
               results_html = (
                   '<div class="tool-list">' + "".join(cards) + '</div>'
@@ -187,12 +231,17 @@ jobs:
                   f'<style>{styles}</style></head><body><main>',
                   '<header><h1>Azure MCP Scanner Report</h1>',
                   f'<div class="muted">Target: {escape(str(target_name))}</div></header>',
+                  '<aside class="notice"><strong>Automated review signals, not a verdict.</strong> '
+                  'Scanner findings are heuristic indicators. Review the affected tools and their implementations before concluding they are unsafe.</aside>',
                   '<section class="summary" aria-label="Scan summary">',
                   f'<div class="metric"><strong>{len(results)}</strong><span>Tools scanned</span></div>',
-                  f'<div class="metric"><strong>{safe_count}</strong><span>Marked safe</span></div>',
-                  f'<div class="metric"><strong>{flagged_count}</strong><span>Flagged</span></div>',
+                  f'<div class="metric"><strong>{safe_count}</strong><span>Scanner marked safe</span></div>',
+                  f'<div class="metric"><strong>{review_count}</strong><span>Have review signals</span></div>',
+                  f'<div class="metric"><strong>{len(signal_groups)}</strong><span>Distinct signal patterns</span></div>',
                   f'<div class="metric"><strong>{total_findings}</strong><span>Analyzer findings</span></div>',
-                  '</section><h2>Tool results</h2>',
+                  '</section><h2>Repeated signals</h2>',
+                  f'<div class="signal-list">{signals_html}</div>',
+                  '<h2>Per-tool details</h2><p class="muted">Expand a tool to see its individual analyzer results.</p>',
                   results_html,
                   f'<details class="raw"><summary>Raw JSON report</summary><pre>{raw_json}</pre></details>',
                   '</main></body></html>'
