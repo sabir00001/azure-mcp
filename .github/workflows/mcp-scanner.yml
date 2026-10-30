@@ -1,0 +1,88 @@
+name: MCP Scanner
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/mcp-scanner.yml
+      - servers/Azure.Mcp.Server/**
+      - core/**
+      - tools/**
+      - Directory.Build.props
+      - Directory.Build.targets
+      - Directory.Packages.props
+      - global.json
+      - nuget.config
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/mcp-scanner.yml
+      - servers/Azure.Mcp.Server/**
+      - core/**
+      - tools/**
+      - Directory.Build.props
+      - Directory.Build.targets
+      - Directory.Packages.props
+      - global.json
+      - nuget.config
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mcp-scanner:
+    name: Scan Azure MCP Server
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5.4.0
+        with:
+          global-json-file: global.json
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Build Azure MCP Server
+        run: dotnet build servers/Azure.Mcp.Server/src/Azure.Mcp.Server.csproj --configuration Release
+
+      - name: Install Cisco MCP Scanner
+        run: python -m pip install --disable-pip-version-check cisco-ai-mcp-scanner
+
+      - name: Scan Azure MCP Server
+        run: |
+          mcp-scanner \
+            --analyzers yara,readiness,prompt_defense \
+            --format raw \
+            stdio \
+            --stdio-command dotnet \
+            --stdio-arg=run \
+            --stdio-arg=--no-build \
+            --stdio-arg=--no-restore \
+            --stdio-arg=--no-launch-profile \
+            --stdio-arg=--configuration \
+            --stdio-arg=Release \
+            --stdio-arg=--project \
+            --stdio-arg=servers/Azure.Mcp.Server/src/Azure.Mcp.Server.csproj \
+            --stdio-arg=-- \
+            --stdio-arg=server \
+            --stdio-arg=start \
+            > mcp-scanner-results.json
+
+      - name: Upload scan results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: mcp-scanner-results
+          path: mcp-scanner-results.json
+          if-no-files-found: warn
+          retention-days: 14
