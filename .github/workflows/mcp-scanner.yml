@@ -88,27 +88,119 @@ jobs:
 
           source = Path("mcp-scanner-results.json")
           target = Path("mcp-scanner-results.html")
+          escape = html.escape
+          styles = (
+              "body{margin:0;background:#f3f6f7;color:#17212b;font:15px/1.5 system-ui,sans-serif;}"
+              "main{width:min(1120px,calc(100% - 32px));margin:32px auto;}"
+              "header{padding:8px 0 22px;border-bottom:1px solid #d6dee2;}h1{margin:0 0 6px;font-size:26px;}"
+              "h2{margin:0;font-size:18px}.muted{color:#53636e;overflow-wrap:anywhere;}"
+              ".summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:20px 0 28px;}"
+              ".metric,.empty,.error{padding:16px;background:#fff;border:1px solid #d6dee2;border-radius:6px;}"
+              ".metric strong{display:block;font-size:24px}.metric span{color:#53636e;font-size:13px;}"
+              ".tool-list{display:grid;gap:12px}.tool{background:#fff;border:1px solid #d6dee2;border-radius:6px;overflow:hidden;}"
+              ".tool summary{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:14px 16px;cursor:pointer;}"
+              ".tool-name,.analyzer-name{font-weight:650;overflow-wrap:anywhere;}"
+              ".badge{display:inline-flex;border-radius:4px;padding:3px 8px;font-size:12px;font-weight:700;text-transform:uppercase;}"
+              ".safe{color:#155b38;background:#e4f4eb}.unsafe,.high,.critical{color:#8d2020;background:#fde8e7;}"
+              ".medium{color:#805100;background:#fff1d2}.low,.info,.completed{color:#24577a;background:#e5f1f8;}"
+              ".unknown,.warning{color:#5b4b12;background:#f7f1d5}.tool-body{padding:0 16px 16px;}"
+              ".analyzers{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px;}"
+              ".analyzer{min-width:0;padding:12px;border:1px solid #e0e6e9;border-radius:5px;}"
+              ".analyzer-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;}"
+              ".analyzer p{margin:8px 0;overflow-wrap:anywhere}.threats{display:flex;flex-wrap:wrap;gap:6px;}"
+              ".threat{padding:3px 7px;color:#394953;background:#edf1f3;border-radius:4px;font-size:11px;}"
+              ".raw{margin-top:22px;color:#53636e}pre{overflow:auto;max-height:65vh;padding:14px;"
+              "border:1px solid #d6dee2;border-radius:5px;background:#fff;font:12px/1.5 ui-monospace,monospace;}"
+              ".error{border-color:#d65b57}@media(max-width:600px){main{width:calc(100% - 20px);margin:18px auto;}h1{font-size:22px;}}"
+          )
+
+          def severity_class(value):
+            value = str(value or "unknown").lower()
+            return value if value in {"critical", "high", "medium", "low", "info", "warning", "completed"} else "unknown"
+
+          def badge(label, css_class):
+            return f'<span class="badge {css_class}">{escape(str(label))}</span>'
+
           try:
               report = json.loads(source.read_text(encoding="utf-8"))
-              rendered = html.escape(json.dumps(report, indent=2, ensure_ascii=False))
-              content = f"""<!doctype html>
-          <html lang="en">
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1">
-            <title>Azure MCP Scanner Report</title>
-            <style>
-              body {{ margin: 0; padding: 2rem; color: #17202a; background: #f4f6f7; font: 15px/1.5 system-ui, sans-serif; }}
-              main {{ max-width: 1100px; margin: auto; }}
-              h1 {{ font-size: 1.5rem; }}
-              pre {{ overflow: auto; padding: 1.25rem; border: 1px solid #d5d8dc; border-radius: 6px; background: #fff; }}
-            </style>
-          </head>
-          <body><main><h1>Azure MCP Scanner Report</h1><pre>{rendered}</pre></main></body>
-          </html>"""
+              results = report.get("scan_results", []) if isinstance(report, dict) else []
+              if not isinstance(results, list):
+                  results = []
+
+              safe_count = sum(item.get("is_safe") is True for item in results if isinstance(item, dict))
+              flagged_count = sum(item.get("is_safe") is False for item in results if isinstance(item, dict))
+              total_findings = sum(
+                  analyzer.get("total_findings", 0) or 0
+                  for item in results if isinstance(item, dict)
+                  for analyzer in (item.get("findings", {}) or {}).values()
+                  if isinstance(analyzer, dict)
+              )
+
+              cards = []
+              for item in results:
+                  if not isinstance(item, dict):
+                      continue
+                  tool_name = item.get("tool_name") or item.get("name") or "Unknown tool"
+                  tool_status = item.get("status") or "unknown"
+                  safety = item.get("is_safe")
+                  safety_label = "SAFE" if safety is True else "FLAGGED" if safety is False else "UNASSESSED"
+                  safety_class = "safe" if safety is True else "unsafe" if safety is False else "unknown"
+                  analyzers = item.get("findings", {}) or {}
+                  analyzer_cards = []
+                  for analyzer_name, details in analyzers.items():
+                      if not isinstance(details, dict):
+                          continue
+                      severity = details.get("severity") or "unknown"
+                      threats = details.get("threat_names", []) or []
+                      threat_html = "".join(f'<span class="threat">{escape(str(threat))}</span>' for threat in threats)
+                      summary = details.get("threat_summary") or "No summary provided."
+                      count = details.get("total_findings", 0)
+                      analyzer_cards.append(
+                          '<section class="analyzer"><div class="analyzer-head">'
+                          f'<span class="analyzer-name">{escape(str(analyzer_name).replace("_", " "))}</span>'
+                          f'{badge(severity, severity_class(severity))}</div>'
+                          f'<p>{escape(str(summary))}</p><p class="muted">Findings: {escape(str(count))}</p>'
+                          f'<div class="threats">{threat_html}</div></section>'
+                      )
+                  if not analyzer_cards:
+                      analyzer_cards.append('<p class="muted">No analyzer details were returned for this tool.</p>')
+                  cards.append(
+                      '<details class="tool" open><summary>'
+                      f'<span class="tool-name">{escape(str(tool_name))}</span>'
+                      f'{badge(safety_label, safety_class)}{badge(tool_status, severity_class(tool_status))}'
+                      '</summary><div class="tool-body"><div class="analyzers">'
+                      + "".join(analyzer_cards)
+                      + '</div></div></details>'
+                  )
+
+              results_html = (
+                  '<div class="tool-list">' + "".join(cards) + '</div>'
+                  if cards else
+                  '<section class="empty">The scanner returned no per-tool results. See the raw report below for details.</section>'
+              )
+              target_name = report.get("server_url", "Azure MCP Server") if isinstance(report, dict) else "Azure MCP Server"
+              raw_json = escape(json.dumps(report, indent=2, ensure_ascii=False))
+              page = [
+                  '<!doctype html><html lang="en"><head><meta charset="utf-8">',
+                  '<meta name="viewport" content="width=device-width, initial-scale=1">',
+                  '<title>Azure MCP Scanner Report</title>',
+                  f'<style>{styles}</style></head><body><main>',
+                  '<header><h1>Azure MCP Scanner Report</h1>',
+                  f'<div class="muted">Target: {escape(str(target_name))}</div></header>',
+                  '<section class="summary" aria-label="Scan summary">',
+                  f'<div class="metric"><strong>{len(results)}</strong><span>Tools scanned</span></div>',
+                  f'<div class="metric"><strong>{safe_count}</strong><span>Marked safe</span></div>',
+                  f'<div class="metric"><strong>{flagged_count}</strong><span>Flagged</span></div>',
+                  f'<div class="metric"><strong>{total_findings}</strong><span>Analyzer findings</span></div>',
+                  '</section><h2>Tool results</h2>',
+                  results_html,
+                  f'<details class="raw"><summary>Raw JSON report</summary><pre>{raw_json}</pre></details>',
+                  '</main></body></html>'
+              ]
+              content = "\n".join(page)
           except Exception as error:
               message = html.escape(f"Scanner JSON report could not be rendered: {error}")
-              content = f"<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Azure MCP Scanner Report</title><body><h1>Azure MCP Scanner Report</h1><p>{message}</p></body></html>"
+              content = f'<!doctype html><html lang="en"><meta charset="utf-8"><title>Azure MCP Scanner Report</title><body><h1>Azure MCP Scanner Report</h1><section class="error"><p>{message}</p></section></body></html>'
           target.write_text(content, encoding="utf-8")
           PY
 
