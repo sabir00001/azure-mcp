@@ -42,6 +42,10 @@ vally-results/
 
 # Claude Code assistant scratch / working files (not part of the codebase)
 Claude outputs/
+claude-output/
+claude-outputs/
+.claude/output/
+.claude/debug/
 memory/
 mcp-initialize.json
 Dockerfile.old

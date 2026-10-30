@@ -78,11 +78,45 @@ jobs:
             --stdio-arg=start \
             > mcp-scanner-results.json
 
+      - name: Render HTML report
+        if: always()
+        run: |
+          python - <<'PY'
+          import html
+          import json
+          from pathlib import Path
+
+          source = Path("mcp-scanner-results.json")
+          target = Path("mcp-scanner-results.html")
+          try:
+              report = json.loads(source.read_text(encoding="utf-8"))
+              rendered = html.escape(json.dumps(report, indent=2, ensure_ascii=False))
+              content = f"""<!doctype html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>Azure MCP Scanner Report</title>
+            <style>
+              body {{ margin: 0; padding: 2rem; color: #17202a; background: #f4f6f7; font: 15px/1.5 system-ui, sans-serif; }}
+              main {{ max-width: 1100px; margin: auto; }}
+              h1 {{ font-size: 1.5rem; }}
+              pre {{ overflow: auto; padding: 1.25rem; border: 1px solid #d5d8dc; border-radius: 6px; background: #fff; }}
+            </style>
+          </head>
+          <body><main><h1>Azure MCP Scanner Report</h1><pre>{rendered}</pre></main></body>
+          </html>"""
+          except Exception as error:
+              message = html.escape(f"Scanner JSON report could not be rendered: {error}")
+              content = f"<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Azure MCP Scanner Report</title><body><h1>Azure MCP Scanner Report</h1><p>{message}</p></body></html>"
+          target.write_text(content, encoding="utf-8")
+          PY
+
       - name: Upload scan results
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: mcp-scanner-results
-          path: mcp-scanner-results.json
+          name: mcp-scanner-html-report
+          path: mcp-scanner-results.html
           if-no-files-found: warn
           retention-days: 14
