@@ -9,10 +9,10 @@ on:
   workflow_dispatch:
 
 jobs:
-  sca-scan:
-    uses: GS-MAFTech/veracode-reusable-workflows/.github/workflows/veracode-sca.yml@dev
-    secrets:
-      SRCCLR_API_TOKEN: ${{ secrets.VERACODE_SCA_AGENT_TOKEN }}
+  # sca-scan:
+  #   uses: GS-MAFTech/veracode-reusable-workflows/.github/workflows/veracode-sca.yml@dev
+  #   secrets:
+  #     SRCCLR_API_TOKEN: ${{ secrets.VERACODE_SCA_AGENT_TOKEN }}
   call-veracode-autopack:
     uses: GS-MAFTech/veracode-reusable-workflows/.github/workflows/veracode-AutoPackaging-PolicyScan-WithAppId.yml@dev
     with:
