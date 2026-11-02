@@ -3,7 +3,7 @@ name: Veracode SCA Scan
 on:
   push:
     branches:
-      - main-veracode
+      - main
   schedule:
     - cron: '0 0 1 3,6,9,12 *'
   workflow_dispatch:
