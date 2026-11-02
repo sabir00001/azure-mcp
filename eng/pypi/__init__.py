@@ -27,8 +27,8 @@ def debug_log(*args, **kwargs):
 def get_executable_path():
     """Get the path to the platform-specific executable."""
     # The binary is located in the bin subdirectory of this package
-    package_dir = Path(__file__).parent
-    bin_dir = package_dir / "bin"
+    package_dir = Path(__file__).resolve().parent
+    bin_dir = (package_dir / "bin").resolve()
 
     # Determine the executable name based on platform
     system = platform.system().lower()
@@ -37,7 +37,13 @@ def get_executable_path():
     else:
         executable_name = "azmcp"
 
-    executable_path = bin_dir / executable_name
+    executable_path = (bin_dir / executable_name).resolve()
+
+    # Ensure executable path stays strictly within the package bin directory
+    try:
+        executable_path.relative_to(bin_dir)
+    except ValueError:
+        raise RuntimeError(f"Invalid executable path: {executable_path}")
 
     debug_log(f"Package directory: {package_dir}")
     debug_log(f"Binary directory: {bin_dir}")
@@ -60,18 +66,34 @@ def run_executable(args=None):
     if args is None:
         args = sys.argv[1:]
 
-    executable_path = get_executable_path()
-
-    if not executable_path.exists():
-        print(f"Error: Executable not found at {executable_path}", file=sys.stderr)
-        print(f"This may indicate a packaging issue or unsupported platform.", file=sys.stderr)
+    try:
+        executable_path = get_executable_path()
+    except RuntimeError as e:
+        print(f"Error: {e}", file=sys.stderr)
         return 1
 
-    debug_log(f"Running: {executable_path} {' '.join(args)}")
+    if not executable_path.is_file():
+        print(f"Error: Executable not found at {executable_path}", file=sys.stderr)
+        print("This may indicate a packaging issue or unsupported platform.", file=sys.stderr)
+        return 1
+
+    # Sanitize and validate arguments to prevent command injection
+    validated_args = []
+    for arg in args:
+        if not isinstance(arg, str):
+            arg = str(arg)
+        # Reject arguments with null bytes or control characters that could corrupt command boundaries
+        if any(c in arg for c in ("\0", "\r", "\n")):
+            print("Error: Invalid argument containing control characters", file=sys.stderr)
+            return 1
+        validated_args.append(arg)
+
+    debug_log(f"Running: {executable_path} {' '.join(validated_args)}")
 
     try:
         result = subprocess.run(
-            [str(executable_path)] + list(args),
+            [str(executable_path), *validated_args],
+            shell=False,
             stdin=sys.stdin,
             stdout=sys.stdout,
             stderr=sys.stderr,
