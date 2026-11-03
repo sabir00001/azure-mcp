@@ -55,6 +55,13 @@ npm exec --prefix ${_TspClientDir} --no -- tsp-client init --update-if-exists --
 
 ## Package Management
 
+### Security Override
+
+The `simple-git` override pins version `4.0.2` to address CVE-2026-102827.
+The pinned tsp-client still declares a dependency on `simple-git` 3.x.
+Remove the override only when tsp-client requires a patched version (4.0.0 or later).
+When updating either package, verify tsp-client's Git operations remain compatible.
+
 ### Automatic Updates via Dependabot
 
 Dependabot is configured to automatically check for updates to `@azure-tools/typespec-client-generator-cli` daily and create pull requests with updated `package.json` and `package-lock.json` files. This ensures the package stays current with the latest versions while maintaining security through the PR review process.
