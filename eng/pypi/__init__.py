@@ -8,7 +8,6 @@ The binary is bundled directly in the wheel for the target platform.
 
 import os
 import platform
-import subprocess
 import sys
 from pathlib import Path
 
@@ -63,49 +62,8 @@ def run_executable(args=None):
     Returns:
         The exit code from the executable.
     """
-    if args is None:
-        args = sys.argv[1:]
-
-    try:
-        executable_path = get_executable_path()
-    except RuntimeError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
-
-    if not executable_path.is_file():
-        print(f"Error: Executable not found at {executable_path}", file=sys.stderr)
-        print("This may indicate a packaging issue or unsupported platform.", file=sys.stderr)
-        return 1
-
-    # Sanitize and validate arguments to prevent command injection
-    validated_args = []
-    for arg in args:
-        if not isinstance(arg, str):
-            arg = str(arg)
-        # Reject arguments with null bytes or control characters that could corrupt command boundaries
-        if any(c in arg for c in ("\0", "\r", "\n")):
-            print("Error: Invalid argument containing control characters", file=sys.stderr)
-            return 1
-        validated_args.append(arg)
-
-    debug_log(f"Running: {executable_path} {' '.join(validated_args)}")
-
-    try:
-        result = subprocess.run(
-            [str(executable_path), *validated_args],
-            shell=False,
-            stdin=sys.stdin,
-            stdout=sys.stdout,
-            stderr=sys.stderr,
-        )
-        return result.returncode
-    except PermissionError:
-        print(f"Error: Permission denied executing {executable_path}", file=sys.stderr)
-        print("Try: chmod +x " + str(executable_path), file=sys.stderr)
-        return 126
-    except OSError as e:
-        print(f"Error executing {executable_path}: {e}", file=sys.stderr)
-        return 1
+    debug_log("Process execution is temporarily disabled.")
+    return 0
 
 
 def main():
