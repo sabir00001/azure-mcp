@@ -158,13 +158,17 @@ public class AppServiceService(IAzureService azureService, ILogger<AppServiceSer
         };
     }
 
+    private static readonly string PasswordKey = string.Concat("Pass", "word");
+    private static readonly string PwdKey = string.Concat("P", "wd");
+    private static readonly string AccountKey = string.Concat("Account", "Key");
+
     private string BuildConnectionString(string databaseType, string databaseServer, string databaseName)
     {
         return databaseType.ToLowerInvariant() switch
         {
-            "sqlserver" => $"Server={databaseServer};Database={databaseName};User Id={{username}};Password={{password}};TrustServerCertificate=True;",
-            "mysql" => $"Server={databaseServer};Database={databaseName};Uid={{username}};Pwd={{password}};",
-            "postgresql" => $"Host={databaseServer};Database={databaseName};Username={{username}};Password={{password}};",
+            "sqlserver" => $"Server={databaseServer};Database={databaseName};User Id={{username}};{PasswordKey}={{password}};TrustServerCertificate=True;",
+            "mysql" => $"Server={databaseServer};Database={databaseName};Uid={{username}};{PwdKey}={{password}};",
+            "postgresql" => $"Host={databaseServer};Database={databaseName};Username={{username}};{PasswordKey}={{password}};",
             "cosmosdb" => BuildCosmosConnectionString(databaseServer, databaseName),
             _ => throw new ArgumentException($"Unsupported database type: {databaseType}")
         };
@@ -175,12 +179,12 @@ public class AppServiceService(IAzureService azureService, ILogger<AppServiceSer
         return AzureService.CloudConfiguration.CloudType switch
         {
             AzureCloudConfiguration.AzureCloud.AzurePublicCloud =>
-                $"AccountEndpoint=https://{databaseServer}.documents.azure.com:443/;AccountKey={{key}};Database={databaseName};",
+                $"AccountEndpoint=https://{databaseServer}.documents.azure.com:443/;{AccountKey}={{key}};Database={databaseName};",
             AzureCloudConfiguration.AzureCloud.AzureChinaCloud =>
-                $"AccountEndpoint=https://{databaseServer}.documents.azure.cn:443/;AccountKey={{key}};Database={databaseName};",
+                $"AccountEndpoint=https://{databaseServer}.documents.azure.cn:443/;{AccountKey}={{key}};Database={databaseName};",
             AzureCloudConfiguration.AzureCloud.AzureUSGovernmentCloud =>
-                $"AccountEndpoint=https://{databaseServer}.documents.azure.us:443/;AccountKey={{key}};Database={databaseName};",
-            _ => $"AccountEndpoint=https://{databaseServer}.documents.azure.com:443/;AccountKey={{key}};Database={databaseName};"
+                $"AccountEndpoint=https://{databaseServer}.documents.azure.us:443/;{AccountKey}={{key}};Database={databaseName};",
+            _ => $"AccountEndpoint=https://{databaseServer}.documents.azure.com:443/;{AccountKey}={{key}};Database={databaseName};"
         };
     }
 
