@@ -6,10 +6,6 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
-using Azure.Mcp.Tools.AppConfig.Commands.KeyValue;
-using Azure.Mcp.Tools.AppConfig.Commands.KeyValue.Lock;
-using Azure.Mcp.Tools.Compute.Commands.Vm;
-using Azure.Mcp.Tools.ResilienceManagement.Commands.Recovery.Plans;
 using Microsoft.Mcp.Core.Areas.Server.Commands;
 using Xunit;
 
@@ -228,59 +224,6 @@ public class OptionSchemaGeneratorTests
     }
 
     [Fact]
-    public void CreateOutputSchema_KeyValueSetWithoutLabel_MatchesSerializedPayload()
-    {
-        AssertOmittedLabelConforms(
-            new KeyValueSetCommand.KeyValueSetCommandResult("mykey", "value", null),
-            OutputSchemaTestJsonContext.Default.KeyValueSetCommandResult);
-    }
-
-    [Fact]
-    public void CreateOutputSchema_KeyValueDeleteWithoutLabel_MatchesSerializedPayload()
-    {
-        AssertOmittedLabelConforms(
-            new KeyValueDeleteCommand.KeyValueDeleteCommandResult("mykey", null, true, "Deleted."),
-            OutputSchemaTestJsonContext.Default.KeyValueDeleteCommandResult);
-    }
-
-    [Fact]
-    public void CreateOutputSchema_KeyValueLockSetWithoutLabel_MatchesSerializedPayload()
-    {
-        AssertOmittedLabelConforms(
-            new KeyValueLockSetCommand.KeyValueLockSetCommandResult("mykey", null, true),
-            OutputSchemaTestJsonContext.Default.KeyValueLockSetCommandResult);
-    }
-
-    [Fact]
-    public void CreateOutputSchema_PerPropertyWhenWritingNull_MatchesSerializedPayload()
-    {
-        var result = new VmGetCommand.VmGetResult(null, null, []);
-        var typeInfo = PerPropertyIgnoreJsonContext.Default.VmGetResult;
-        var schema = OptionSchemaGenerator.CreateOutputSchema(typeInfo);
-        var payload = JsonSerializer.SerializeToElement(result, typeInfo);
-
-        Assert.False(payload.TryGetProperty("vm", out _));
-        Assert.False(payload.TryGetProperty("instanceView", out _));
-        Assert.True(payload.TryGetProperty("vms", out _));
-        Assert.False(schema.ContainsKey("required"));
-        AssertRequiredPropertiesArePresent(schema, payload);
-    }
-
-    [Fact]
-    public void CreateOutputSchema_PerPropertyNever_OverridesDefaultIgnoreCondition()
-    {
-        var result = new RecoveryPlanDeleteCommand.RecoveryPlanDeleteCommandResult(false, "plan");
-        var typeInfo = DefaultIgnoreJsonContext.Default.RecoveryPlanDeleteCommandResult;
-        var schema = OptionSchemaGenerator.CreateOutputSchema(typeInfo);
-        var payload = JsonSerializer.SerializeToElement(result, typeInfo);
-
-        Assert.False(payload.GetProperty("deleted").GetBoolean());
-        var required = Assert.IsType<JsonArray>(schema["required"]);
-        Assert.Contains(required, property => (string?)property == "deleted");
-        AssertRequiredPropertiesArePresent(schema, payload);
-    }
-
-    [Fact]
     public void CreateOutputSchema_PropertyIgnoreConditions_MatchSerializedPayload()
     {
         var result = CreateIgnoreConditionSample();
@@ -378,9 +321,6 @@ public class OptionSchemaGeneratorTests
 internal sealed record OutputSchemaSampleResult(string Name, int Count);
 
 [JsonSerializable(typeof(OutputSchemaSampleResult))]
-[JsonSerializable(typeof(KeyValueSetCommand.KeyValueSetCommandResult))]
-[JsonSerializable(typeof(KeyValueDeleteCommand.KeyValueDeleteCommandResult))]
-[JsonSerializable(typeof(KeyValueLockSetCommand.KeyValueLockSetCommandResult))]
 [JsonSerializable(typeof(string))]
 [JsonSerializable(typeof(string[]))]
 [JsonSerializable(typeof(int))]

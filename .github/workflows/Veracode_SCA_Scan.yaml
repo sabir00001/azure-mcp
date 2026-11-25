@@ -23,26 +23,8 @@ jobs:
         with:
           dotnet-version: 10.0.400
 
-      - name: Scope Repository to In-Scope Projects
-        run: |
-          set -euo pipefail
-          # Remove out-of-scope directories (eng, servers, unrelated tools/core) before restore and SCA scan
-          rm -rf eng servers
-          find core -mindepth 1 -maxdepth 1 \
-            ! -name 'Azure.Mcp.Core' \
-            ! -name 'Microsoft.Mcp.Core' \
-            -exec rm -rf {} +
-          find tools -mindepth 1 -maxdepth 1 \
-            ! -name 'Azure.Mcp.Tools.VmDiagnostics' \
-            ! -name 'Azure.Mcp.Tools.NetworkDiagnostics' \
-            -exec rm -rf {} +
-
       - name: Restore .NET dependencies
-        run: |
-          dotnet restore core/Microsoft.Mcp.Core/src/Microsoft.Mcp.Core.csproj
-          dotnet restore core/Azure.Mcp.Core/src/Azure.Mcp.Core.csproj
-          dotnet restore tools/Azure.Mcp.Tools.VmDiagnostics/src/Azure.Mcp.Tools.VmDiagnostics.csproj
-          dotnet restore tools/Azure.Mcp.Tools.NetworkDiagnostics/src/Azure.Mcp.Tools.NetworkDiagnostics.csproj
+        run: dotnet restore Microsoft.Mcp.slnx
 
       - name: Run Veracode SCA
         uses: veracode/veracode-sca@v2.1.12

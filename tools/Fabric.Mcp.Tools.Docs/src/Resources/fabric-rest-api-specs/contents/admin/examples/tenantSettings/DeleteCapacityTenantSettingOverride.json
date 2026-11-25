@@ -1,9 +1,0 @@
-{
-    "parameters": {
-        "capacityId": "f51b705f-a409-4d40-9197-c5d5f349e2ef",
-        "tenantSettingName": "TenantSettingForCapacityDelegatedSwitch"
-    },
-    "responses": {
-        "200": {}
-    }
-}

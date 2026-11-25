@@ -1,1 +1,0 @@
-Run `azd coding-agent config` command to configure or install azure mcp in coding agent for the current repo.

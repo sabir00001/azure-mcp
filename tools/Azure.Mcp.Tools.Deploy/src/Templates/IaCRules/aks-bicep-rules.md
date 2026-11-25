@@ -1,4 +1,0 @@
-﻿- Set AKS cluster with 'identity.type = "SystemAssigned"'.
-- DO NOT use auto scale ('agentPoolProfiles.enableAutoScaling').
-- Assign AcrPull role to the kubelet identity for pulling images from ACR. Add 'dependsOn' aks resource to ensure AKS managed identity exists before creating the role assignment.
-- Enable 'addonProfiles.azureKeyvaultSecretsProvider' to access KeyVault.

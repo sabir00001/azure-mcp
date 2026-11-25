@@ -1,2 +1,0 @@
-﻿- Use "azurerm_monitor_diagnostic_setting" resource to send app service logs to Log Analytics Workspace.
-- On the App Service Plan, reserved must be 'true' for Linux, and 'false' for Windows.
