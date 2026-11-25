@@ -38,6 +38,12 @@ jobs:
           set -euo pipefail
           cd "$RUNNER_TEMP/veracode-publish"
 
+          # Remove out-of-scope Azure.Mcp.Tools.* assemblies, keeping only VmDiagnostics and NetworkDiagnostics
+          find . -maxdepth 1 -name 'Azure.Mcp.Tools.*' \
+            ! -name 'Azure.Mcp.Tools.VmDiagnostics.*' \
+            ! -name 'Azure.Mcp.Tools.NetworkDiagnostics.*' \
+            -delete
+
           for assembly in \
             azmcp \
             Azure.Mcp.Core \
