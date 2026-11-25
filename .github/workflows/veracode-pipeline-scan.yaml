@@ -8,7 +8,65 @@ on:
 
 jobs:
   veracode-pipeline-scanning:
-    uses: GS-MAFTech/veracode-reusable-workflows/.github/workflows/Veracode-PipelineScan.yml@dev
-    secrets:
-      VERACODE_API_ID: ${{ secrets.VERACODE_API_ID }}
-      VERACODE_API_KEY: ${{ secrets.VERACODE_API_KEY }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Package Selected Directories
+        run: |
+          set -e
+          paths=(
+            core/Azure.Mcp.Core
+            core/Microsoft.Mcp.Core
+            tools/Azure.Mcp.Tools.VmDiagnostics
+            tools/Azure.Mcp.Tools.NetworkDiagnostics
+            servers/Azure.Mcp.Server
+          )
+
+          for path in "${paths[@]}"; do
+            if [ ! -d "$path" ]; then
+              echo "Required directory not found: $path" >&2
+              exit 1
+            fi
+          done
+
+          zip -r veracode-source.zip "${paths[@]}" \
+            -x '*/[Tt][Ee][Ss][Tt]/*' \
+               '*/[Tt][Ee][Ss][Tt][Ss]/*' \
+               '*/*.[Tt][Ee][Ss][Tt][Ss]/*' \
+               '*/[Tt][Ee][Ss][Tt][Uu][Tt][Ii][Ll][Ii][Tt][Ii][Ee][Ss]/*' \
+               '*/bin/*' '*/obj/*' '*/packages/*'
+
+      - name: Download Veracode Pipeline Scan CLI
+        run: |
+          curl -fsSLO https://downloads.veracode.com/securityscan/pipeline-scan-LATEST.zip
+          unzip -o pipeline-scan-LATEST.zip
+
+      - name: Run Veracode Pipeline Scan
+        continue-on-error: true
+        env:
+          VERACODE_API_ID: ${{ secrets.VERACODE_API_ID }}
+          VERACODE_API_KEY: ${{ secrets.VERACODE_API_KEY }}
+        run: |
+          java -jar pipeline-scan.jar \
+            --veracode_api_id "$VERACODE_API_ID" \
+            --veracode_api_key "$VERACODE_API_KEY" \
+            --file veracode-source.zip \
+            --json_output_file results.json \
+            --filtered_json_output_file filtered_results.json \
+            --issue_details true
+
+      - name: Upload JSON Scan Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipeline-scan-json
+          path: |
+            results.json
+            filtered_results.json
+
+      - name: Import Pipeline Scan Flaws as GitHub Issues
+        uses: veracode/veracode-flaws-to-issues@v2.1.19
+        with:
+          scan-results-json: filtered_results.json
