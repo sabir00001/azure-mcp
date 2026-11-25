@@ -75,7 +75,7 @@ jobs:
             -appid "$VERACODE_APP_ID" \
             -filepath veracode-build.zip \
             -version "${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
-            -scantimeout 180 \
+            -scantimeout 30 \
             -scanpollinginterval 30 \
             -deleteincompletescan 2 \
             -toplevel true \
